@@ -612,33 +612,24 @@
             svgCode.focus();
         });
 
-        // 粘贴功能 - 通过聚焦后模拟 Ctrl+V 实现，无需权限
-        function pasteCode() {
-            svgCode.value = '';  // 清空以便粘贴替换
-            svgCode.focus();
-            // 使用 execCommand 触发粘贴（依赖用户的粘贴操作上下文）
-            const result = document.execCommand('paste');
-            if (!result) {
-                // 如果 execCommand 失败，提示用户手动按 Ctrl+V
-                svgCode.placeholder = '请按 Ctrl+V 粘贴...';
-                // 监听一次粘贴事件后自动预览
-                const onPaste = () => {
-                    setTimeout(() => {
-                        if (svgCode.value.includes('<svg')) {
-                            previewFromCode();
-                        }
-                        svgCode.placeholder = '<svg width="100" height="100">...</svg>';
-                    }, 50);
-                    svgCode.removeEventListener('paste', onPaste);
-                };
-                svgCode.addEventListener('paste', onPaste);
-            } else {
-                // execCommand 成功
-                setTimeout(() => {
-                    if (svgCode.value.includes('<svg')) {
-                        previewFromCode();
-                    }
-                }, 50);
+        // 粘贴功能 - 通过 Go 绑定的函数读取系统剪贴板
+        async function pasteCode() {
+            try {
+                const text = await getClipboardText();  // 调用 Go 绑定的函数
+                if (text && text.includes('<svg')) {
+                    svgCode.value = text;
+                    previewFromCode();
+                } else if (text) {
+                    svgCode.value = text;
+                    svgCode.focus();
+                } else {
+                    svgCode.focus();
+                    svgCode.placeholder = '剪贴板为空，请复制 SVG 代码后重试...';
+                }
+            } catch (err) {
+                console.error('读取剪贴板失败:', err);
+                svgCode.focus();
+                svgCode.placeholder = '读取剪贴板失败，请手动按 Ctrl+V 粘贴...';
             }
         }
 
